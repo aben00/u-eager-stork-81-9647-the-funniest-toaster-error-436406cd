@@ -12,10 +12,22 @@ const OUTPUT_PATH = process.env.OUTPUT_PATH || "/output/entry.txt";
 
 function selfCheck(text) {
   if (typeof text !== "string") throw new Error("entry is not a string");
-  if (text.length < 1 || text.length > 120) {
-    throw new Error(`entry is ${text.length} characters, must be 1-120`);
+  // Count code points, not UTF-16 units, so the 120-character gate holds
+  // for any Unicode the line might carry.
+  const chars = Array.from(text);
+  if (chars.length < 1 || chars.length > 120) {
+    throw new Error(`entry is ${chars.length} characters, must be 1-120`);
   }
   if (text.trim().length === 0) throw new Error("entry is only whitespace");
+  if (text !== text.trim()) {
+    throw new Error("entry must not start or end with whitespace");
+  }
+  for (const ch of chars) {
+    const code = ch.codePointAt(0);
+    if (code < 0x20 || code === 0x7f) {
+      throw new Error("entry must not contain control characters");
+    }
+  }
   if (text.includes("\n") || text.includes("\r")) {
     throw new Error("entry must be a single line");
   }
